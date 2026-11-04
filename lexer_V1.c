@@ -45,20 +45,20 @@ typedef struct
 DECLARE_ARRAY(TokensArray,Token)
 
 #define append(array,value)                                     \
-   if((array).count >= (array).capacity)                      \
+   if((array).count >= (array).capacity)                        \
    {                                                            \
-    if((array).capacity == 0)                                  \
+    if((array).capacity == 0)                                   \
     {                                                           \
-        (array).capacity = 256;                                \
+        (array).capacity = 256;                                 \
     }                                                           \
     else                                                        \
     {                                                           \
-        (array).capacity *=2;                                  \
+        (array).capacity *=2;                                   \
     }                                                           \
     (array).items = realloc((array).items,(array).capacity*sizeof(*((array).items))); \
    }                                                            \
-   (array).items[(array).count] = (value);                    \
-   (array).count +=1;                                          \
+   (array).items[(array).count] = (value);                      \
+   (array).count +=1;                                           \
 
 bool is_operator(char operator)
 {
@@ -84,7 +84,7 @@ Operator_t which_operator(char  operator_str)
 
 bool is_number(char operator_str)
 {
-    if( operator_str >= '0' &&  operator_str == '9')
+    if( operator_str >= '0' &&  operator_str <= '9')
     {
         return true;
     }
@@ -123,15 +123,11 @@ uint8_t decimal_place(char* str_number)
 bool handle_number_bool( char* equation, size_t* cursor, long double* resultat )
 {
     String str_tmp = {0}; 
-    printf("le curseur: %d \n",*cursor);
-    printf("l'équation : %s \n",equation);
-    printf("taille du tableau : %d \n",sizeof(equation)/sizeof(char));
-    printf("l'équation elem : %c \n",equation[*cursor]);
     while (*cursor < strlen(equation))
     {
         if( equation[*cursor] !='.' && !is_number(equation[*cursor]) )
         {
-            append(str_tmp,'\0');
+            append(str_tmp,0);
             break;
         }
         else if(is_number(equation[*cursor]) || equation[*cursor] =='.')
@@ -161,28 +157,75 @@ void tokenize(char* equation,TokensArray* tokens_array)
             ++cursor;
              printf("Type Op : %d \n",equation_token.type);
        }
-        else if(is_number(equation[cursor]))
-        {
+       else if(is_number(equation[cursor]))
+       {
+            printf("2TOUR :%s \n",equation);
             long double resultat= 0;
-            Token equation_token = {
-                .type = TOKEN_NUMBER,
-                .operator = handle_number_bool( equation,&cursor, &resultat ) ? resultat : -1
-            };
-            append(*tokens_array,equation_token);
-            printf("Type Num : %d \n",equation_token.type);
-            //printf("%Lf \n",equation_token.operator);
+            if(!handle_number_bool(equation,&cursor, &resultat)) printf("ERREUR TOKEN NUMBER");
+            else
+            {
+                Token equation_token = {
+                    .type = TOKEN_NUMBER,
+                    .number = resultat,
+                };
+                append(*tokens_array,equation_token);
+            }
         }
-        //printf("Adresse de l'élém : %p \n",(void*)&tokens_array[cursor]);
-        //printf("Type de l'élém    : %d \n",tokens_array->items[cursor].type);
+        printf("Adresse de l'élém : %p \n",(void*)&tokens_array[cursor]);
+        printf("Type de l'élém    : %d \n",tokens_array->items[cursor].type);
     }
+    printf("-----------------------");
 }
+
+// NOTE: cette fonction facilite l'entrée utilisateur
+// le seul moment où ça retourne false c'est quand tu fais CTRL+D
+bool readline(String *input) {
+  char tmp_ch;
+
+  while (read(STDIN_FILENO, &tmp_ch, 1)) {
+    if (tmp_ch != '\n') {
+      append(*input, tmp_ch);
+      continue;
+    }
+
+    append(*input, 0);
+    return true;
+  }
+
+  return false;
+}
+
 int main()
 {
 
     TokensArray tokens_array = {0};
-    char equation[256]={};
-    printf("Calc : \n");
-    scanf("%2s",equation);
-    tokenize(equation,&tokens_array);
+    String input = {0};
+    // char equation[256]={};
+    //printf("Calc : \n");
+    //scanf("%2s",equation);
+    //tokenize(equation,&tokens_array);
     
+    for (;;) {
+        printf("Calc : ");
+        // NOTE: ça c'est pour afficher le printf directement.
+        // Le `printf` a un buffer. Comme ça, ça fait pas trop de syscall - il
+        // affiche directement quand il y a une nouvelle ligne à la fin du texte. Ou
+        // le runtime de C flush tout quand la fonction retourne.
+        // fflush - force la vidange du buffer dans la console.
+        fflush(stdout);
+        if (readline(&input)) {
+            // NOTE: Le strlen marche ici parce que le readline ajoute un 0 après le
+            // texte d'entrée.
+            
+            printf("COUNT CARAC : %lu \n", strlen(input.items));
+            tokenize(input.items, &tokens_array);
+
+            // NOTE: on reset it
+            input.count = 0;
+        } 
+        else 
+        {
+            break;
+        }
+    } 
 }
