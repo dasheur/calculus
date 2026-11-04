@@ -99,6 +99,7 @@ bool is_convert_str_to_number(char* str_number, long double* resultat )
     else if (errno == ERANGE) return false; // Overflow ou underflow.
     else if (*fin != '\0') return false; // Conversion partielle ex: ex: "3.14abc" → val = 3.14, endptr pointe sur 'a'.
     *resultat = tmp;
+    // TODO : review printf("Test : %Lf \n",*resultat);
     return true;
 
 }
@@ -121,7 +122,11 @@ uint8_t decimal_place(char* str_number)
 
 bool handle_number_bool( char* equation, size_t* cursor, long double* resultat )
 {
-    String str_tmp = {0};
+    String str_tmp = {0}; 
+    printf("le curseur: %d \n",*cursor);
+    printf("l'équation : %s \n",equation);
+    printf("taille du tableau : %d \n",sizeof(equation)/sizeof(equation[0]));
+    printf("l'équation elem : %s \n",equation[*cursor]);
     while (*cursor < strlen(equation))
     {
         if( *cursor <= strlen(equation)
@@ -130,15 +135,15 @@ bool handle_number_bool( char* equation, size_t* cursor, long double* resultat )
             equation[*cursor] !='.' && !is_number(equation[*cursor])
         ))
         {
-            append(str_tmp,'0');
+            append(str_tmp,'\0');
         }
-        else
+        else if(is_number(equation[*cursor]) || equation[*cursor] =='.')
         {
             append(str_tmp,equation[*cursor]);
         }
         ++*cursor;
     }
-    if ( !is_convert_str_to_number(str_tmp.items,resultat) ) return false;
+    if ( is_convert_str_to_number(str_tmp.items,resultat) ) return true;
     // TODO FREE str_tmp.
     return false;
 }
@@ -156,18 +161,21 @@ void tokenize(char* equation,TokensArray* tokens_array)
             };
             append(*tokens_array,equation_token);
             ++cursor;
+             printf("Type Op : %d \n",equation_token.type);
        }
         else if(is_number(equation[cursor]))
         {
             long double resultat= 0;
             Token equation_token = {
                 .type = TOKEN_NUMBER,
-                .operator = handle_number_bool( equation,&cursor, &resultat ),
+                .operator = handle_number_bool( equation,&cursor, &resultat ) ? resultat : -1
             };
             append(*tokens_array,equation_token);
+            printf("Type Num : %d \n",equation_token.type);
+            //printf("%Lf \n",equation_token.operator);
         }
-        printf("%p \n",(void*)&tokens_array[cursor]);
-        if(cursor >0) printf("%d \n",*tokens_array[cursor].type);
+        //printf("Adresse de l'élém : %p \n",(void*)&tokens_array[cursor]);
+        //printf("Type de l'élém    : %d \n",tokens_array->items[cursor].type);
     }
 }
 int main()
@@ -177,8 +185,6 @@ int main()
     char equation[256]={};
     printf("Calc : \n");
     scanf("%2s",equation);
-    printf("COUNT CARAC : %llu \n",strlen(equation));
-    // printf("Affiche l'équation : %s \n",equation);
     tokenize(equation,&tokens_array);
     
 }
