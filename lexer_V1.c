@@ -125,22 +125,20 @@ bool handle_number_bool( char* equation, size_t* cursor, long double* resultat )
     String str_tmp = {0}; 
     printf("le curseur: %d \n",*cursor);
     printf("l'équation : %s \n",equation);
-    printf("taille du tableau : %d \n",sizeof(equation)/sizeof(equation[0]));
-    printf("l'équation elem : %s \n",equation[*cursor]);
+    printf("taille du tableau : %d \n",sizeof(equation)/sizeof(char));
+    printf("l'équation elem : %c \n",equation[*cursor]);
     while (*cursor < strlen(equation))
     {
-        if( *cursor <= strlen(equation)
-        ||
-        (
-            equation[*cursor] !='.' && !is_number(equation[*cursor])
-        ))
+        if( equation[*cursor] !='.' && !is_number(equation[*cursor]) )
         {
             append(str_tmp,'\0');
+            break;
         }
         else if(is_number(equation[*cursor]) || equation[*cursor] =='.')
         {
             append(str_tmp,equation[*cursor]);
         }
+         printf("str_tmp elem : %s \n",str_tmp.items);
         ++*cursor;
     }
     if ( is_convert_str_to_number(str_tmp.items,resultat) ) return true;
