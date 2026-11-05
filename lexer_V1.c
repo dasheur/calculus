@@ -14,7 +14,6 @@ typedef struct{                                             \
 } NAME;
 
 DECLARE_ARRAY(String,char)
-
 typedef enum
 {
     TOKEN_OPERATOR, // Vaut 0;
@@ -37,28 +36,28 @@ typedef struct
     TokenType type;
     union
     {
-        long double number;
         Operator_t operator;
+        long double number;
     };
 } Token;
 
 DECLARE_ARRAY(TokensArray,Token)
 
-#define append(array,value)                                     \
-   if((array).count >= (array).capacity)                        \
-   {                                                            \
-    if((array).capacity == 0)                                   \
-    {                                                           \
-        (array).capacity = 256;                                 \
-    }                                                           \
-    else                                                        \
-    {                                                           \
-        (array).capacity *=2;                                   \
-    }                                                           \
-    (array).items = realloc((array).items,(array).capacity*sizeof(*((array).items))); \
-   }                                                            \
-   (array).items[(array).count] = (value);                      \
-   (array).count +=1;                                           \
+#define append(array,value)                                       \
+   if((array)->count >= (array)->capacity)                        \
+   {                                                              \
+    if((array)->capacity == 0)                                    \
+    {                                                             \
+        (array)->capacity = 256;                                  \
+    }                                                             \
+    else                                                          \
+    {                                                             \
+        (array)->capacity *=2;                                    \
+    }                                                             \
+    (array)->items = realloc((array)->items,(array)->capacity*sizeof(*((array)->items))); \
+   }                                                              \
+   (array)->items[(array)->count] = (value);                      \
+   (array)->count +=1;                                            \
 
 bool is_operator(char operator)
 {
@@ -91,18 +90,6 @@ bool is_number(char operator_str)
     return false;
 }
 
-bool is_convert_str_to_number(char* str_number, long double* resultat )
-{
-    char* fin; // Pointeur pour stocker l'adresse où s'arrête la lecture.
-    long double tmp = strtod(str_number,&fin);
-    if (fin == str_number) return false; // Aucune conversion n'a eu lieu car ils pointent vers la même adresse.
-    else if (errno == ERANGE) return false; // Overflow ou underflow.
-    else if (*fin != '\0') return false; // Conversion partielle ex: ex: "3.14abc" → val = 3.14, endptr pointe sur 'a'.
-    *resultat = tmp;
-    // TODO : review printf("Test : %Lf \n",*resultat);
-    return true;
-
-}
 // Nbr décimal après la virgule
 uint8_t decimal_place(char* str_number)
 {
@@ -120,6 +107,18 @@ uint8_t decimal_place(char* str_number)
     return count;
 }
 
+bool is_convert_str_to_number(char* str_number, long double* resultat )
+{
+    char* fin; // Pointeur pour stocker l'adresse où s'arrête la lecture.
+    long double tmp = strtod(str_number,&fin);
+    if (fin == str_number) return false; // Aucune conversion n'a eu lieu car ils pointent vers la même adresse.
+    else if (errno == ERANGE) return false; // Overflow ou underflow.
+    else if (*fin != '\0') return false; // Conversion partielle ex: ex: "3.14abc" → val = 3.14, endptr pointe sur 'a'.
+    *resultat = tmp;
+    return true;
+
+}
+
 bool handle_number_bool( char* equation, size_t* cursor, long double* resultat )
 {
     String str_tmp = {0}; 
@@ -127,14 +126,13 @@ bool handle_number_bool( char* equation, size_t* cursor, long double* resultat )
     {
         if( equation[*cursor] !='.' && !is_number(equation[*cursor]) )
         {
-            append(str_tmp,0);
+            append(&str_tmp,0);
             break;
         }
         else if(is_number(equation[*cursor]) || equation[*cursor] =='.')
         {
-            append(str_tmp,equation[*cursor]);
+            append(&str_tmp,equation[*cursor]);
         }
-         printf("str_tmp elem : %s \n",str_tmp.items);
         ++*cursor;
     }
     if ( is_convert_str_to_number(str_tmp.items,resultat) ) return true;
@@ -153,13 +151,14 @@ void tokenize(char* equation,TokensArray* tokens_array)
                 .type = TOKEN_OPERATOR,
                 .operator = which_operator(equation[cursor]),
             };
-            append(*tokens_array,equation_token);
+            append(tokens_array,equation_token);
             ++cursor;
-             printf("Type Op : %d \n",equation_token.type);
+            printf("Value Data OP     :%c \n",equation_token.operator);
+            printf("Value Data OP TAB :%c \n",tokens_array->items[tokens_array->count-1].operator);
+            printf("Value Data OP COUNT:%ld \n",tokens_array->count);
        }
        else if(is_number(equation[cursor]))
        {
-            printf("2TOUR :%s \n",equation);
             long double resultat= 0;
             if(!handle_number_bool(equation,&cursor, &resultat)) printf("ERREUR TOKEN NUMBER");
             else
@@ -168,13 +167,13 @@ void tokenize(char* equation,TokensArray* tokens_array)
                     .type = TOKEN_NUMBER,
                     .number = resultat,
                 };
-                append(*tokens_array,equation_token);
+                append(tokens_array,equation_token);
+                printf("Value Data NUM      :%Lf \n",equation_token.number);
+                printf("Value Data NUM TAB  :%Lf \n",tokens_array->items[tokens_array->count-1].number);
+                printf("Value Data NUM COUNT:%ld \n",tokens_array->count);
             }
         }
-        printf("Adresse de l'élém : %p \n",(void*)&tokens_array[cursor]);
-        printf("Type de l'élém    : %d \n",tokens_array->items[cursor].type);
     }
-    printf("-----------------------");
 }
 
 // NOTE: cette fonction facilite l'entrée utilisateur
@@ -184,11 +183,14 @@ bool readline(String *input) {
 
   while (read(STDIN_FILENO, &tmp_ch, 1)) {
     if (tmp_ch != '\n') {
-      append(*input, tmp_ch);
-      continue;
+        if(tmp_ch !=' ') // evite la boucle infinie avec par ex: 1 1 1
+        {
+            append(input, tmp_ch);
+        }
+        continue;
     }
 
-    append(*input, 0);
+    append(input, 0);
     return true;
   }
 
@@ -216,7 +218,6 @@ int main()
         if (readline(&input)) {
             // NOTE: Le strlen marche ici parce que le readline ajoute un 0 après le
             // texte d'entrée.
-            
             printf("COUNT CARAC : %lu \n", strlen(input.items));
             tokenize(input.items, &tokens_array);
 
