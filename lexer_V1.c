@@ -153,9 +153,7 @@ void tokenize(char* equation,TokensArray* tokens_array)
             };
             append(tokens_array,equation_token);
             ++cursor;
-            printf("Value Data OP     :%c \n",equation_token.operator);
             printf("Value Data OP TAB :%c \n",tokens_array->items[tokens_array->count-1].operator);
-            printf("Value Data OP COUNT:%ld \n",tokens_array->count);
        }
        else if(is_number(equation[cursor]))
        {
@@ -168,9 +166,7 @@ void tokenize(char* equation,TokensArray* tokens_array)
                     .number = resultat,
                 };
                 append(tokens_array,equation_token);
-                printf("Value Data NUM      :%Lf \n",equation_token.number);
                 printf("Value Data NUM TAB  :%Lf \n",tokens_array->items[tokens_array->count-1].number);
-                printf("Value Data NUM COUNT:%ld \n",tokens_array->count);
             }
         }
     }
@@ -222,7 +218,6 @@ int main()
             tokenize(input.items, &tokens_array);
 
             // NOTE: on reset it
-            input.count = 0;
         } 
         else 
         {
